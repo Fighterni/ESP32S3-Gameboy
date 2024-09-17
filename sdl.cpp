@@ -1,6 +1,7 @@
 #include "sdl.h"
 
 #include <Arduino_GFX_Library.h>
+
 #include "SPI.h"
 
 #define _cs 5     // 3 goes to TFT CS
@@ -22,11 +23,16 @@
 #define _a GPIO_NUM_39
 #define _b GPIO_NUM_36
 
-Arduino_DataBus *bus = new Arduino_ESP32SPI(_dc, _cs, _sclk, _mosi, _miso);
+Arduino_DataBus *bus = new Arduino_ESP32SPI(_dc);
+// Arduino_DataBus *bus = new Arduino_ESP32SPI(_dc, _cs, _sclk, _mosi, _miso);
 Arduino_GFX *tft = new Arduino_ILI9341(bus, _rst, 3 /* rotation */);
 
 void backlighting(bool state) {
-  digitalWrite(_led, state ? HIGH : LOW);
+  if (!state) {
+    digitalWrite(_led, LOW);
+  } else {
+    digitalWrite(_led, HIGH);
+  }
 }
 
 #define GAMEBOY_HEIGHT 144
@@ -46,24 +52,29 @@ static int button_start, button_select, button_a, button_b, button_down,
 static volatile bool frame_ready = false;
 TaskHandle_t draw_task_handle;
 
-void draw_button(bool value, int x_pos, int y_pos, const char *label = nullptr) {
-  uint16_t color = value ? 0xffff : 0x0000;
-  tft->fillCircle(x_pos, y_pos, 7, color);
+void draw_button(bool value, int x_pos, int y_pos,
+                 const char *label = nullptr) {
+  if (value) {
+    tft->fillCircle(x_pos, y_pos, 7, 0xffff);
+  } else {
+    tft->fillCircle(x_pos, y_pos, 7, 0x0000);
+  }
   if (label) {
     int len = strlen(label);
     constexpr int char_len = 8;
     int width = char_len * len;
     for (int i = 0; i < len; ++i) {
-      tft->drawChar(x_pos - width / 2 + char_len * i, y_pos + 20, label[i], 0xffff, BLACK);
+      tft->drawChar(x_pos - width / 2 + char_len * i, y_pos + 20, label[i],
+                    0xffff, BLACK);
     }
   }
 }
 
 void draw_task(void *parameter) {
-    uint16_t color_palette[] = {0xffff, 0x07e0, 0x001f, 0x0000}; // White, Green, Blue, Black
+    uint16_t color_palette[] = {0xffff, (16 << 11) + (32 << 5) + 16, (8 << 11) + (16 << 5) + 8, 0x0000};
+
     int h_offset = (SCREEN_WIDTH - DRAW_WIDTH) / 2;
     int v_offset = (SCREEN_HEIGHT - DRAW_HEIGHT) / 2;
-    
     while (true) {
         while (!frame_ready) {
             delay(1);
@@ -73,8 +84,10 @@ void draw_task(void *parameter) {
     }
 }
 
+
 void sdl_init(void) {
   frame_buffer = new uint8_t[DRAW_WIDTH * DRAW_HEIGHT];
+  // GFX_EXTRA_PRE_INIT();
   tft->begin(SPI_FREQ);
   pinMode(_led, OUTPUT);
   backlighting(true);
@@ -84,10 +97,16 @@ void sdl_init(void) {
   for (gpio_num_t pin : gpios) {
     esp_rom_gpio_pad_select_gpio(pin);
     gpio_set_direction(pin, GPIO_MODE_INPUT);
-    // Uncomment to use builtin pullup resistors
-    // gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY);
+    // uncomment to use builtin pullup resistors
+    //    gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY);
   }
-  xTaskCreatePinnedToCore(draw_task, "drawTask", 10000, NULL, 0, &draw_task_handle, 0);
+  xTaskCreatePinnedToCore(draw_task,  /* Function to implement the task */
+                          "drawTask", /* Name of the task */
+                          10000,      /* Stack size in words */
+                          NULL,       /* Task input parameter */
+                          0,          /* Priority of the task */
+                          &draw_task_handle, /* Task handle. */
+                          0); /* Core where the task should run */
 }
 
 int sdl_update(void) {
@@ -106,7 +125,9 @@ int sdl_update(void) {
 }
 
 unsigned int sdl_get_buttons(void) {
-  return (button_start * 8) | (button_select * 4) | (button_b * 2) | button_a;
+  unsigned int buttons =
+      (button_start * 8) | (button_select * 4) | (button_b * 2) | button_a;
+  return buttons;
 }
 
 unsigned int sdl_get_directions(void) {
