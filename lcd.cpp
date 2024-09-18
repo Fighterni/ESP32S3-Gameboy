@@ -137,7 +137,10 @@ static void draw_bg_and_window(uint8_t *frame_buffer, int line, const unsigned c
         map_select = window_tilemap_select;
     } else {
         if (!bg_enabled) {
-            memset(frame_buffer + line * TARGET_WIDTH, 0, TARGET_WIDTH);
+            // Setze alle Pixel in der aktuellen Zeile auf den Hintergrund
+            for (int x = 0; x < TARGET_WIDTH; ++x) {
+                frame_buffer[line * TARGET_WIDTH + x] = bgpalette[0];
+            }
             return;
         }
         xm = scroll_x % 256;
@@ -145,7 +148,7 @@ static void draw_bg_and_window(uint8_t *frame_buffer, int line, const unsigned c
         map_select = tilemap_select;
     }
 
-    // Draw background and window
+    // Neue Skalierung und füllen des gesamten Framebuffers
     for (int x = 0; x < GAMEBOY_WIDTH; ++x) {
         map_offset = (ym / 8) * 32 + xm / 8;
         tile_num = raw_mem[0x9800 + map_select * 0x400 + map_offset];
@@ -156,13 +159,15 @@ static void draw_bg_and_window(uint8_t *frame_buffer, int line, const unsigned c
         mask = 128 >> (xm % 8);
         colour = (!!(b2 & mask) << 1) | !!(b1 & mask);
 
-        // Manuelle Skalierung für jedes Pixel
-        int scaledX = x * 3 / 2; // 160 -> 240 (1.5x)
-        int scaledLine = line * 3 / 2; // 144 -> 216 (1.5x)
+        int scaledXStart = x * 3 / 2; // 160 -> 240 (1.5x)
+        int scaledXEnd = (x + 1) * 3 / 2; // Berechnung für den nächsten Pixelbereich
+        int scaledLineStart = line * 3 / 2; // 144 -> 216 (1.5x)
+        int scaledLineEnd = (line + 1) * 3 / 2;
 
-        for (int sy = 0; sy < 3 / 2; ++sy) {  // Skalierung in der Y-Richtung
-            for (int sx = 0; sx < 3 / 2; ++sx) {  // Skalierung in der X-Richtung
-                int bufferIndex = (scaledLine + sy) * TARGET_WIDTH + (scaledX + sx);
+        // Fülle den Bereich des skalierenden Pixels im Framebuffer
+        for (int sy = scaledLineStart; sy < scaledLineEnd; ++sy) {
+            for (int sx = scaledXStart; sx < scaledXEnd; ++sx) {
+                int bufferIndex = sy * TARGET_WIDTH + sx;
                 if (bufferIndex >= 0 && bufferIndex < TARGET_WIDTH * TARGET_HEIGHT) {
                     frame_buffer[bufferIndex] = bgpalette[colour];
                 }
@@ -200,12 +205,15 @@ static void draw_sprites(uint8_t *frame_buffer, int line, int nsprites, struct s
 
             pal = (s[i].flags & PNUM) ? sprpalette2 : sprpalette1;
 
-            int scaledX = (s[i].x + x) * 3 / 2;
-            int scaledLine = line * 3 / 2;
+            int scaledXStart = (s[i].x + x) * 3 / 2;
+            int scaledXEnd = (s[i].x + x + 1) * 3 / 2;
+            int scaledLineStart = line * 3 / 2;
+            int scaledLineEnd = (line + 1) * 3 / 2;
 
-            for (int sy = 0; sy < 3 / 2; ++sy) {  // Skalierung in der Y-Richtung
-                for (int sx = 0; sx < 3 / 2; ++sx) {  // Skalierung in der X-Richtung
-                    int bufferIndex = (scaledLine + sy) * TARGET_WIDTH + (scaledX + sx);
+            // Setze den Bereich des Pixels im Framebuffer
+            for (int sy = scaledLineStart; sy < scaledLineEnd; ++sy) {
+                for (int sx = scaledXStart; sx < scaledXEnd; ++sx) {
+                    int bufferIndex = sy * TARGET_WIDTH + sx;
                     if (bufferIndex >= 0 && bufferIndex < TARGET_WIDTH * TARGET_HEIGHT) {
                         frame_buffer[bufferIndex] = pal[colour];
                     }
@@ -214,6 +222,7 @@ static void draw_sprites(uint8_t *frame_buffer, int line, int nsprites, struct s
         }
     }
 }
+
 
 
 static void render_line(int line) {
