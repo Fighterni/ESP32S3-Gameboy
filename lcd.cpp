@@ -145,10 +145,6 @@ static void draw_bg_and_window(uint8_t *frame_buffer, int line, const unsigned c
         map_select = tilemap_select;
     }
 
-    // Scaling factors
-    const float scaleX = static_cast<float>(TARGET_WIDTH) / GAMEBOY_WIDTH;
-    const float scaleY = static_cast<float>(TARGET_HEIGHT) / GAMEBOY_HEIGHT;
-
     // Draw background and window
     for (int x = 0; x < GAMEBOY_WIDTH; ++x) {
         map_offset = (ym / 8) * 32 + xm / 8;
@@ -160,12 +156,13 @@ static void draw_bg_and_window(uint8_t *frame_buffer, int line, const unsigned c
         mask = 128 >> (xm % 8);
         colour = (!!(b2 & mask) << 1) | !!(b1 & mask);
 
-        int scaledX = static_cast<int>(x * scaleX);
-        int scaledLine = static_cast<int>(line * scaleY);
+        // Manuelle Skalierung für jedes Pixel
+        int scaledX = x * 3 / 2; // 160 -> 240 (1.5x)
+        int scaledLine = line * 3 / 2; // 144 -> 216 (1.5x)
 
-        for (int sx = 0; sx < scaleX; ++sx) {
-            if (scaledX + sx < TARGET_WIDTH) {
-                int bufferIndex = scaledLine * TARGET_WIDTH + scaledX + sx;
+        for (int sy = 0; sy < 3 / 2; ++sy) {  // Skalierung in der Y-Richtung
+            for (int sx = 0; sx < 3 / 2; ++sx) {  // Skalierung in der X-Richtung
+                int bufferIndex = (scaledLine + sy) * TARGET_WIDTH + (scaledX + sx);
                 if (bufferIndex >= 0 && bufferIndex < TARGET_WIDTH * TARGET_HEIGHT) {
                     frame_buffer[bufferIndex] = bgpalette[colour];
                 }
@@ -178,10 +175,6 @@ static void draw_bg_and_window(uint8_t *frame_buffer, int line, const unsigned c
 
 static void draw_sprites(uint8_t *frame_buffer, int line, int nsprites, struct sprite *s, const unsigned char *raw_mem) {
     int i;
-
-    // Scaling factors
-    const float scaleX = static_cast<float>(TARGET_WIDTH) / GAMEBOY_WIDTH;
-    const float scaleY = static_cast<float>(TARGET_HEIGHT) / GAMEBOY_HEIGHT;
 
     for (i = 0; i < nsprites; i++) {
         unsigned int b1, b2, tile_addr, sprite_line, x;
@@ -207,26 +200,21 @@ static void draw_sprites(uint8_t *frame_buffer, int line, int nsprites, struct s
 
             pal = (s[i].flags & PNUM) ? sprpalette2 : sprpalette1;
 
-            int scaledX = static_cast<int>((s[i].x + x) * scaleX);
-            int scaledLine = static_cast<int>(line * scaleY);
+            int scaledX = (s[i].x + x) * 3 / 2;
+            int scaledLine = line * 3 / 2;
 
-            if (s[i].flags & PRIO) {
-                int bufferIndex = scaledLine * TARGET_WIDTH + scaledX;
-                if (bufferIndex >= 0 && bufferIndex < TARGET_WIDTH * TARGET_HEIGHT) {
-                    unsigned int temp = frame_buffer[bufferIndex];
-                    if (temp != pal[bgpalette[0]]) continue;
-                }
-            }
-
-            for (int sx = 0; sx < scaleX; ++sx) {
-                int bufferIndex = scaledLine * TARGET_WIDTH + scaledX + sx;
-                if (bufferIndex >= 0 && bufferIndex < TARGET_WIDTH * TARGET_HEIGHT) {
-                    frame_buffer[bufferIndex] = pal[colour];
+            for (int sy = 0; sy < 3 / 2; ++sy) {  // Skalierung in der Y-Richtung
+                for (int sx = 0; sx < 3 / 2; ++sx) {  // Skalierung in der X-Richtung
+                    int bufferIndex = (scaledLine + sy) * TARGET_WIDTH + (scaledX + sx);
+                    if (bufferIndex >= 0 && bufferIndex < TARGET_WIDTH * TARGET_HEIGHT) {
+                        frame_buffer[bufferIndex] = pal[colour];
+                    }
                 }
             }
         }
     }
 }
+
 
 static void render_line(int line) {
     const unsigned char *raw_mem = mem_get_raw();
