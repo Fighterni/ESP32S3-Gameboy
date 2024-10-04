@@ -4,27 +4,27 @@
 
 #include "SPI.h"
 
-#define _cs 5     // 3 goes to TFT CS
-#define _dc 21    // 4 goes to TFT DC
-#define _mosi 23  // 5 goes to TFT MOSI
-#define _sclk 18  // 6 goes to TFT SCK/CLK
-#define _rst 25   // ESP RST to TFT RESET
-#define _miso 19  // Not connected
-#define _led 22
+#define _cs 15     // 3 goes to TFT CS
+#define _dc 5    // 4 goes to TFT DC
+#define _mosi 13  // 5 goes to TFT MOSI
+#define _sclk 14  // 6 goes to TFT SCK/CLK
+#define _rst 4   // ESP RST to TFT RESET
+#define _miso 12  // Not connected
+#define _led 9 //(Falsch)
 //       3.3V     // Goes to TFT LED
 //       5v       // Goes to TFT Vcc
 //       Gnd      // Goes to TFT Gnd
-#define _left GPIO_NUM_4
-#define _right GPIO_NUM_12
-#define _up GPIO_NUM_17
-#define _down GPIO_NUM_16
-#define _select GPIO_NUM_34
-#define _start GPIO_NUM_35
-#define _a GPIO_NUM_39
-#define _b GPIO_NUM_36
+#define _left GPIO_NUM_40
+#define _right GPIO_NUM_39
+#define _up GPIO_NUM_41
+#define _down GPIO_NUM_42
+#define _select GPIO_NUM_46
+#define _start GPIO_NUM_45
+#define _a GPIO_NUM_48
+#define _b GPIO_NUM_47
 
-Arduino_DataBus *bus = new Arduino_ESP32SPI(_dc);
-// Arduino_DataBus *bus = new Arduino_ESP32SPI(_dc, _cs, _sclk, _mosi, _miso);
+//Arduino_DataBus *bus = new Arduino_ESP32SPI(_dc);
+Arduino_DataBus *bus = new Arduino_ESP32SPI(_dc, _cs, _sclk, _mosi, _miso);
 Arduino_GFX *tft = new Arduino_ILI9341(bus, _rst, 3 /* rotation */);
 
 void backlighting(bool state) {

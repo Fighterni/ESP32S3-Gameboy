@@ -5,10 +5,10 @@
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
 
-#define SD_CS GPIO_NUM_16
-#define SD_MISO GPIO_NUM_12
-#define SD_MOSI GPIO_NUM_13
-#define SD_CLK GPIO_NUM_14
+#define SD_CS GPIO_NUM_21
+#define SD_MISO GPIO_NUM_16
+#define SD_MOSI GPIO_NUM_17
+#define SD_CLK GPIO_NUM_18
 
 void sd_init() {
   pinMode(SD_CS, OUTPUT);
