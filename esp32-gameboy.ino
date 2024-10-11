@@ -20,7 +20,7 @@ void setup() {
   int r = rom_init(gb_rom);
 
   sdl_init();
-  sd_init();
+  //sd_init();
 
   gameboy_mem_init();
 
@@ -36,7 +36,7 @@ void setup() {
          cycles_in_micro_sec);
 }
 
-#define PERF_REPORT
+//#define PERF_REPORT
 
 #define REPORT_INTERVAL 60
 
@@ -72,7 +72,6 @@ void loop() {
 #endif
   uint32_t start_frame_cycle = ESP.getCycleCount();
   uint32_t emulator_cpu_cycle = 0;
-
   while (!screen_updated) {
 #ifdef PERF_REPORT
     auto pc = cpu_get_pc();

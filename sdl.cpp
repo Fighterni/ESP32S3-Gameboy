@@ -110,16 +110,17 @@ void sdl_init(void) {
 }
 
 int sdl_update(void) {
-  button_up = !gpio_get_level(_up);
-  button_left = !gpio_get_level(_left);
-  button_down = !gpio_get_level(_down);
-  button_right = !gpio_get_level(_right);
+  button_up = gpio_get_level(_up);
+  button_left = gpio_get_level(_left);
+  button_down = gpio_get_level(_down);
+  button_right = gpio_get_level(_right);
 
-  button_start = !gpio_get_level(_start);
-  button_select = !gpio_get_level(_select);
+  button_start = gpio_get_level(_start);
+  button_select = gpio_get_level(_select);
 
-  button_a = !gpio_get_level(_a);
-  button_b = !gpio_get_level(_b);
+  button_a = gpio_get_level(_a);
+  button_b = gpio_get_level(_b);
+  
   sdl_frame();
   return 0;
 }
@@ -136,4 +137,4 @@ unsigned int sdl_get_directions(void) {
 
 uint8_t *sdl_get_framebuffer(void) { return frame_buffer; }
 
-void sdl_frame(void) { frame_ready = true; }
+void sdl_frame(void) { frame_ready = true;}
