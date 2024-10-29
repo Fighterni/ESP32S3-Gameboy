@@ -36,7 +36,7 @@ void setup() {
          cycles_in_micro_sec);
 }
 
-#define PERF_REPORT
+//#define PERF_REPORT
 
 #define REPORT_INTERVAL 60
 
