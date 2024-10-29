@@ -72,7 +72,6 @@ void loop() {
 #endif
   uint32_t start_frame_cycle = ESP.getCycleCount();
   uint32_t emulator_cpu_cycle = 0;
-
   while (!screen_updated) {
 #ifdef PERF_REPORT
     auto pc = cpu_get_pc();
