@@ -39,10 +39,7 @@ void setup() {
   int file_count = 0;
   sd_list_files(file_list, &file_count);
   display_files_on_lcd(file_list, file_count);
-  float a;
-  while(a <= 100000){
-    a++;
-  }
+  clearScreen();
 }
 
 //#define PERF_REPORT
