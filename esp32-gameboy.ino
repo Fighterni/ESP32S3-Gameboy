@@ -16,8 +16,6 @@ static uint32_t cpu_freq = 0;
 static uint32_t cycles_per_frame = 0;
 static uint32_t cycles_in_micro_sec = 0;
 
-
-
 void setup() {
   int r = rom_init(gb_rom);
 

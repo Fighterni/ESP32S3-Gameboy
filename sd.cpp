@@ -9,7 +9,6 @@
 #define SD_MISO GPIO_NUM_16
 #define SD_MOSI GPIO_NUM_17
 #define SD_CLK GPIO_NUM_18
-
 sdmmc_card_t *card;
 
 void sd_init() {
@@ -74,8 +73,6 @@ void sd_init() {
 #include <dirent.h>
 #include <stdio.h>
 
-#define MAX_FILES 20       // Maximum number of files to store
-#define MAX_FILENAME_LEN 100 // Maximum length of each file name
 
 void sd_list_files(char file_list[MAX_FILES][MAX_FILENAME_LEN], int *file_count){
     const char *base_path = "/sdcard";
