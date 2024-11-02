@@ -44,6 +44,8 @@ void backlighting(bool state) {
 
 #define SPI_FREQ 40000000
 
+
+
 static uint8_t *frame_buffer;
 
 static int button_start, button_select, button_a, button_b, button_down,
@@ -52,22 +54,11 @@ static int button_start, button_select, button_a, button_b, button_down,
 static volatile bool frame_ready = false;
 TaskHandle_t draw_task_handle;
 
-void draw_button(bool value, int x_pos, int y_pos,
-                 const char *label = nullptr) {
-  if (value) {
-    tft->fillCircle(x_pos, y_pos, 7, 0xffff);
-  } else {
-    tft->fillCircle(x_pos, y_pos, 7, 0x0000);
-  }
-  if (label) {
-    int len = strlen(label);
-    constexpr int char_len = 8;
-    int width = char_len * len;
-    for (int i = 0; i < len; ++i) {
-      tft->drawChar(x_pos - width / 2 + char_len * i, y_pos + 20, label[i],
-                    0xffff, BLACK);
+void display_files_on_lcd(char file_list[MAX_FILES][MAX_FILENAME_LEN], int file_count) {
+    for (int i = 0; i < file_count; i++) {
+        printf("File: %s\n", file_list[i]);
+        tft->printf("File: %s\n", file_list[i]);
     }
-  }
 }
 
 void draw_task(void *parameter) {

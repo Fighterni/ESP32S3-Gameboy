@@ -10,29 +10,32 @@
 #define SD_MOSI GPIO_NUM_17
 #define SD_CLK GPIO_NUM_18
 
+sdmmc_card_t *card;
+
 void sd_init() {
   pinMode(SD_CS, OUTPUT);
   digitalWrite(SD_CS, HIGH);
   esp_err_t ret;
 
   esp_vfs_fat_sdmmc_mount_config_t mount_config = {
-      .format_if_mount_failed = false,
-      .max_files = 5,
-      .allocation_unit_size = 16 * 1024};
+    .format_if_mount_failed = false,
+    .max_files = 5,
+    .allocation_unit_size = 16 * 1024
+  };
   sdmmc_card_t *card;
   const char mount_point[] = "/sdcard";
   printf("Initializing SD card\n");
 
   sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-  host.slot = SPI3_HOST; //SPI3 Channal
+  host.slot = SPI3_HOST;  //SPI3 Channal
 
   spi_bus_config_t bus_cfg = {
-      .mosi_io_num = SD_MOSI,
-      .miso_io_num = SD_MISO,
-      .sclk_io_num = SD_CLK,
-      .quadwp_io_num = -1,
-      .quadhd_io_num = -1,
-      .max_transfer_sz = 4000,
+    .mosi_io_num = SD_MOSI,
+    .miso_io_num = SD_MISO,
+    .sclk_io_num = SD_CLK,
+    .quadwp_io_num = -1,
+    .quadhd_io_num = -1,
+    .max_transfer_sz = 4000,
   };
   ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg,
                            SDSPI_DEFAULT_DMA);
@@ -57,8 +60,8 @@ void sd_init() {
       printf("Failed to mount filesystem.\n");
     } else {
       printf(
-          "Failed to initialize the card. Make sure SD card lines have pull-up "
-          "resistors in place.\n");
+        "Failed to initialize the card. Make sure SD card lines have pull-up "
+        "resistors in place.\n");
     }
     return;
   }
@@ -68,4 +71,37 @@ void sd_init() {
   sdmmc_card_print_info(stdout, card);
 }
 
-void sd_list_files() {}
+#include <dirent.h>
+#include <stdio.h>
+
+#define MAX_FILES 20       // Maximum number of files to store
+#define MAX_FILENAME_LEN 100 // Maximum length of each file name
+
+void sd_list_files(char file_list[MAX_FILES][MAX_FILENAME_LEN], int *file_count){
+    const char *base_path = "/sdcard";
+    DIR *dir = opendir(base_path);
+    *file_count = 0; // Initialize file count
+
+    if (dir == NULL) {
+        printf("Failed to open directory: %s\n", base_path);
+        return;
+    }
+
+    struct dirent *entry;
+    printf("Listing files in %s:\n", base_path);
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type == DT_REG) {
+            const char *file_name = entry->d_name;
+            const char *ext = strrchr(file_name, '.'); // Find the last dot in the file name
+
+            if (ext != NULL && strcmp(ext, ".gb") == 0) {
+                strncpy(file_list[*file_count], file_name, MAX_FILENAME_LEN - 1);
+                file_list[*file_count][MAX_FILENAME_LEN - 1] = '\0'; // Ensure null termination
+                (*file_count)++;
+            }
+        }
+    }
+
+    closedir(dir);
+}
+
