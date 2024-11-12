@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 #include "cpu.h"
-#include "gbrom.h"
+//#include "gbrom.h"
 #include "lcd.h"
 #include "mem.h"
 #include "rom.h"
@@ -17,10 +17,29 @@ static uint32_t cycles_per_frame = 0;
 static uint32_t cycles_in_micro_sec = 0;
 
 void setup() {
-  int r = rom_init(gb_rom);
 
   sdl_init();
   sd_init();
+
+  char file_list[MAX_FILES][MAX_FILENAME_LEN];
+  int file_count = 0;
+  bool error = sd_list_files(file_list, &file_count);
+  if (!error) {  //Check if sd card is avaiable
+    sd_card_missing();
+    while (1) {}
+  }
+  int selected_file_index = display_files_on_lcd(file_list, file_count);
+  char file_name[MAX_FILENAME_LEN];
+  strcpy(file_name, file_list[selected_file_index]);
+  clearScreen();
+  unsigned char *gb_rom = sd_read_file(file_name);  //Is a malloc and will never be freed
+  if (gb_rom != NULL) {
+    int r = rom_init(gb_rom);  // Process the ROM
+    printf("Load file");
+    //free(gb_rom);              // Free the allocated memory
+  } else {
+    printf("Error reading the selected file.\n");
+  }
 
   gameboy_mem_init();
 
@@ -34,12 +53,6 @@ void setup() {
   cycles_in_micro_sec = cpu_freq / 1000000;
   printf("cycles_per_frame %d cycles_in_micro_sec %d\n", cycles_per_frame,
          cycles_in_micro_sec);
-
-  char file_list[MAX_FILES][MAX_FILENAME_LEN];
-  int file_count = 0;
-  sd_list_files(file_list, &file_count);
-  display_files_on_lcd(file_list, file_count);
-  clearScreen();
 }
 
 //#define PERF_REPORT

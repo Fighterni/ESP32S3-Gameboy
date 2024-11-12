@@ -6,7 +6,7 @@ extern "C" {
 
 #endif
 int rom_load(const char *);
-int rom_init(const unsigned char *);
+int rom_init(unsigned char *);
 const unsigned char *rom_getbytes(void);
 unsigned int rom_get_mapper(void);
 

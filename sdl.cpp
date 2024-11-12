@@ -54,50 +54,70 @@ static int button_start, button_select, button_a, button_b, button_down,
 static volatile bool frame_ready = false;
 TaskHandle_t draw_task_handle;
 
-void display_files_on_lcd(char file_list[MAX_FILES][MAX_FILENAME_LEN], int file_count) {
-  int selected_file_index = 0;       // Der Index der aktuell ausgewählten Datei
-  int previous_selected_index = -1;  // Der vorherige Index, initial auf -1 gesetzt
+void sd_card_missing(void){
+tft->setTextSize(3);
+tft->printf("SD card missing");
+}
 
+#define DISPLAY_ROWS 6  // Anzahl der Dateien, die gleichzeitig auf dem Display angezeigt werden
 
-  while (1) {  // Endlosschleife, um die Datei auszuwählen
-    button_update();
-    // Logik für die Tasten
-    if (button_up) {  // U für "Up"
-      if (selected_file_index == 0) {
-        selected_file_index = file_count - 1;  // Gehe zum letzten Element, wenn wir ganz oben sind
-      } else {
-        selected_file_index--;  // Gehe eine Datei nach oben
-      }
-    } else if (button_down) {  // D für "Down"
-      if (selected_file_index == file_count - 1) {
-        selected_file_index = 0;  // Gehe zum ersten Element, wenn wir ganz unten sind
-      } else {
-        selected_file_index =1;  // Gehe eine Datei nach unten
-      }
-    } else if (button_a) {  // S für "Select"
-      clearScreen();
-      printf("Ausgewählte Datei: %s\n", file_list[selected_file_index]);
-      return;  // Auswahl zurückgeben
-    }
+int display_files_on_lcd(char file_list[MAX_FILES][MAX_FILENAME_LEN], int file_count) {
+    int selected_file_index = 0;       // Der Index der aktuell ausgewählten Datei
+    int previous_selected_index = -1;  // Der vorherige Index, initial auf -1 gesetzt
+    int window_start_index = 0;        // Startindex für das Anzeigefenster
 
-    // Nur bei Änderung der Auswahl aktualisieren
-    if (selected_file_index != previous_selected_index) {
-      clearScreen();
-      // Alle Dateien einmal initial anzeigen
-      for (int i = 0; i < file_count; i++) {
-        tft->setTextSize(2);  // Normale Größe für alle Dateien
+    while (1) {  // Endlosschleife, um die Datei auszuwählen
+        button_update();
 
-        if (i == selected_file_index) {
-          tft->printf("> File: %s\n", file_list[selected_file_index]);  // Mit Pfeil
-        } else {
-          tft->printf("File: %s\n", file_list[i]);
+        // Logik für die Tasten
+        if (button_up) {  // U für "Up"
+            if (selected_file_index == 0) {
+                selected_file_index = file_count - 1;  // Gehe zum letzten Element, wenn wir ganz oben sind
+                window_start_index = file_count - DISPLAY_ROWS;  // Fenster anpassen
+            } else {
+                selected_file_index--;  // Gehe eine Datei nach oben
+                if (selected_file_index < window_start_index) {
+                    window_start_index--;  // Fenster verschieben
+                }
+            }
+        } else if (button_down) {  // D für "Down"
+            if (selected_file_index == file_count - 1) {
+                selected_file_index = 0;  // Gehe zum ersten Element, wenn wir ganz unten sind
+                window_start_index = 0;  // Fenster zurücksetzen
+            } else {
+                selected_file_index++;  // Gehe eine Datei nach unten
+                if (selected_file_index >= window_start_index + DISPLAY_ROWS) {
+                    window_start_index++;  // Fenster verschieben
+                }
+            }
+        } else if (button_a) {  // S für "Select"
+            clearScreen();
+            printf("Ausgewählte Datei: %s\n", file_list[selected_file_index]);
+            return selected_file_index;  // Auswahl zurückgeben
         }
-        // Speichere den aktuellen Index als vorherigen Index
-      }
-      previous_selected_index = selected_file_index;
-      delay(5000);
+
+        // Nur bei Änderung der Auswahl aktualisieren
+        if (selected_file_index != previous_selected_index) {
+            clearScreen();
+
+            // Nur die Dateien im aktuellen Fenster anzeigen
+            for (int i = 0; i < DISPLAY_ROWS && (window_start_index + i) < file_count; i++) {
+                tft->setTextSize(2);  // Normale Größe für alle Dateien
+
+                int file_index = window_start_index + i;  // Datei im Fenster
+
+                if (file_index == selected_file_index) {
+                    tft->printf("> File: %s\n", file_list[file_index]);  // Markiere die ausgewählte Datei
+                } else {
+                    tft->printf("File: %s\n", file_list[file_index]);
+                }
+            }
+
+            // Speichere den aktuellen Index als vorherigen Index
+            previous_selected_index = selected_file_index;
+            delay(100);  // Leichte Verzögerung für bessere Lesbarkeit
+        }
     }
-  }
 }
 void clearScreen(void) {
   tft->fillScreen(BLACK);  // Setze Hintergrundfarbe (abhängig von deiner Bibliothek)

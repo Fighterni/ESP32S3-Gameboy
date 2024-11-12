@@ -1,9 +1,11 @@
 #include "sd.h"
+#include "sdl.h"
 
 #include <Arduino.h>
 
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
+#include "esp_heap_caps.h"
 
 #define SD_CS GPIO_NUM_21
 #define SD_MISO GPIO_NUM_16
@@ -74,31 +76,92 @@ void sd_init() {
 #include <stdio.h>
 
 
-void sd_list_files(char file_list[MAX_FILES][MAX_FILENAME_LEN], int *file_count){
-    const char *base_path = "/sdcard";
-    DIR *dir = opendir(base_path);
-    *file_count = 0; // Initialize file count
+bool sd_list_files(char file_list[MAX_FILES][MAX_FILENAME_LEN], int *file_count) {
+  const char *base_path = "/sdcard";
+  DIR *dir = opendir(base_path);
+  *file_count = 0;  // Initialize file count
 
-    if (dir == NULL) {
-        printf("Failed to open directory: %s\n", base_path);
-        return;
+  if (dir == NULL) {
+    printf("Failed to open directory: %s\n", base_path);
+    return false; //SD card is missing
+  }
+
+  struct dirent *entry;
+  printf("Listing files in %s:\n", base_path);
+  while ((entry = readdir(dir)) != NULL) {
+    if (entry->d_type == DT_REG) {
+      const char *file_name = entry->d_name;
+      const char *ext = strrchr(file_name, '.');  // Find the last dot in the file name
+
+      if (ext != NULL && strcmp(ext, ".gb") == 0) {
+        strncpy(file_list[*file_count], file_name, MAX_FILENAME_LEN - 1);
+        file_list[*file_count][MAX_FILENAME_LEN - 1] = '\0';  // Ensure null termination
+        (*file_count)++;
+      }
     }
+  }
 
-    struct dirent *entry;
-    printf("Listing files in %s:\n", base_path);
-    while ((entry = readdir(dir)) != NULL) {
-        if (entry->d_type == DT_REG) {
-            const char *file_name = entry->d_name;
-            const char *ext = strrchr(file_name, '.'); // Find the last dot in the file name
-
-            if (ext != NULL && strcmp(ext, ".gb") == 0) {
-                strncpy(file_list[*file_count], file_name, MAX_FILENAME_LEN - 1);
-                file_list[*file_count][MAX_FILENAME_LEN - 1] = '\0'; // Ensure null termination
-                (*file_count)++;
-            }
-        }
-    }
-
-    closedir(dir);
+  closedir(dir);
+  return true; //Everthing went fine
 }
 
+unsigned char *sd_read_file(const char *file_name) {
+  // Erstellen des vollständigen Pfads mit einer ausreichenden Länge
+  char full_path[MAX_FILENAME_LEN + 8];  // +8 für "/sdcard/"
+  snprintf(full_path, sizeof(full_path), "/sdcard/%s", file_name);
+
+  printf("Dateipfad: %s\n", full_path);  // Debug-Ausgabe des Dateipfads
+
+  // Öffne die Datei im Lese-Modus
+  FILE *file = fopen(full_path, "rb");
+  if (file == NULL) {
+    printf("Fehler beim Öffnen der Datei: %s\n", full_path);
+    return NULL;  // Rückgabe von NULL, wenn die Datei nicht geöffnet werden kann
+  }
+
+  // Bestimmen der Dateigröße
+  fseek(file, 0, SEEK_END);
+  long file_size = ftell(file);
+  fseek(file, 0, SEEK_SET);
+
+  // Überprüfen, ob die Dateigröße gültig ist
+  if (file_size <= 0) {
+    printf("Ungültige Dateigröße: %ld\n", file_size);
+    fclose(file);
+    return NULL;
+  }
+
+  printf("Dateigröße: %ld Bytes\n", file_size);  // Debug-Ausgabe der Dateigröße
+  // Überprüfen, ob genügend interner Speicher verfügbar ist
+  size_t free_mem = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+  printf("Verfügbarer interner Speicher: %zu Bytes\n", free_mem);
+
+  if (file_size > free_mem) {
+    printf("Nicht genug RAM, um die Datei vollständig zu laden (Dateigröße: %ld Bytes).\n", file_size);
+    fclose(file);
+    return NULL;  // Rückgabe von NULL, wenn nicht genug Speicher vorhanden ist
+  }
+
+  unsigned char *buffer = (unsigned char *)heap_caps_malloc(file_size + 1, MALLOC_CAP_SPIRAM);
+  if (buffer == NULL) {
+    printf("Fehler bei der Speicherzuweisung für den Dateiinhalt im PSRAM\n");
+    fclose(file);
+    return NULL;
+  }
+  printf("malloc erfolgreich initialisiert\n");
+  printf("Verfügbarer PSRAM nach der Zuweisung: %d Bytes\n", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+
+  // Dateiinhalt lesen
+  size_t bytes_read = fread(buffer, 1, file_size, file);
+  if (bytes_read != file_size) {
+    printf("Fehler beim vollständigen Lesen der Datei (gelesene Bytes: %zu, erwartete Bytes: %ld)\n", bytes_read, file_size);
+    free(buffer);  // Speicher freigeben, wenn das Lesen nicht erfolgreich war
+    fclose(file);
+    return NULL;  // Rückgabe von NULL, wenn nicht alle Bytes gelesen werden konnten
+  }
+
+  buffer[file_size] = '\0';  // NULL-Terminierung des Puffers für Textdaten
+
+  fclose(file);   // Schließen der Datei
+  return buffer;  // Rückgabe des Puffers mit dem Dateiinhalt
+}
