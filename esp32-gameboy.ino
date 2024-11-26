@@ -35,10 +35,11 @@ void setup() {
   unsigned char *gb_rom = sd_read_file(file_name);  //Is a malloc and will never be freed
   if (gb_rom != NULL) {
     int r = rom_init(gb_rom);  // Process the ROM
-    printf("Load file");
+    printf("File loaded");
     //free(gb_rom);              // Free the allocated memory
   } else {
     printf("Error reading the selected file.\n");
+    free(gb_rom);
   }
 
   gameboy_mem_init();
