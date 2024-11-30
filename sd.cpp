@@ -1,5 +1,4 @@
 #include "sd.h"
-#include "sdl.h"
 
 #include <Arduino.h>
 
@@ -11,6 +10,7 @@
 #define SD_MISO GPIO_NUM_16
 #define SD_MOSI GPIO_NUM_17
 #define SD_CLK GPIO_NUM_18
+
 sdmmc_card_t *card;
 
 void sd_init() {

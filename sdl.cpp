@@ -4,13 +4,15 @@
 
 #include "SPI.h"
 
-#define _cs 15    // 3 goes to TFT CS
-#define _dc 5     // 4 goes to TFT DC
+
+#define _cs 15     // 3 goes to TFT CS
+#define _dc 5    // 4 goes to TFT DC
 #define _mosi 13  // 5 goes to TFT MOSI
 #define _sclk 14  // 6 goes to TFT SCK/CLK
-#define _rst 4    // ESP RST to TFT RESET
+#define _rst 4   // ESP RST to TFT RESET
 #define _miso 12  // Not connected
-#define _led 9    //(Falsch)
+#define _led 9 //(Falsch)
+
 //       3.3V     // Goes to TFT LED
 //       5v       // Goes to TFT Vcc
 //       Gnd      // Goes to TFT Gnd
@@ -44,15 +46,15 @@ void backlighting(bool state) {
 
 #define SPI_FREQ 40000000
 
-
-
 static uint8_t *frame_buffer;
 
 static int button_start, button_select, button_a, button_b, button_down,
-  button_up, button_left, button_right;
+    button_up, button_left, button_right;
+
 
 static volatile bool frame_ready = false;
 TaskHandle_t draw_task_handle;
+
 
 void sd_card_missing(void){
 tft->setTextSize(3);
@@ -154,6 +156,7 @@ void sdl_init(void) {
     // uncomment to use builtin pullup resistors
     //    gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY);
   }
+
   xTaskCreatePinnedToCore(draw_task,         /* Function to implement the task */
                           "drawTask",        /* Name of the task */
                           10000,             /* Stack size in words */
