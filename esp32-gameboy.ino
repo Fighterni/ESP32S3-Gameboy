@@ -2,7 +2,6 @@
 #include <stdio.h>
 
 #include "cpu.h"
-//#include "gbrom.h"
 #include "lcd.h"
 #include "mem.h"
 #include "rom.h"
@@ -10,17 +9,20 @@
 #include "sdl.h"
 #include "timer.h"
 
-static constexpr uint32_t emulator_cpu_freq = 4200000 / 4;
+static constexpr uint32_t emulator_cpu_freq = 4200000 / 4; //Eventuell Anpassbar
 static constexpr uint32_t frames_per_sec = 60;
 static uint32_t cpu_freq = 0;
 static uint32_t cycles_per_frame = 0;
 static uint32_t cycles_in_micro_sec = 0;
 
+/* The setup is done here with initialisation of the display, the SD card, the CPU and the Emulator*/
+/* The setup includes the handling of the menu and the handling of loading games*/
 void setup() {
 
-  sdl_init();
-  sd_init();
+  sdl_init(); //LCD init, Button init
+  sd_init(); //SD card init
 
+/*Menu handling*/
   char file_list[MAX_FILES][MAX_FILENAME_LEN];
   int file_count = 0;
   bool error = sd_list_files(file_list, &file_count);
@@ -35,10 +37,10 @@ void setup() {
   unsigned char *gb_rom = sd_read_file(file_name);  //Is a malloc and will never be freed
   if (gb_rom != NULL) {
     int r = rom_init(gb_rom);  // Process the ROM
-    printf("Load file");
-    //free(gb_rom);              // Free the allocated memory
+    printf("File loaded\n");
   } else {
     printf("Error reading the selected file.\n");
+    free(gb_rom); //Free malloc if init failed
   }
 
   gameboy_mem_init();
