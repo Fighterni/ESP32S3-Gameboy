@@ -4,16 +4,13 @@
 
 #include "SPI.h"
 
-#define _cs 15    // 3 goes to TFT CS
-#define _dc 5     // 4 goes to TFT DC
-#define _mosi 13  // 5 goes to TFT MOSI
-#define _sclk 14  // 6 goes to TFT SCK/CLK
+#define _cs 15    // goes to TFT CS
+#define _dc 5     // goes to TFT DC
+#define _mosi 13  // goes to TFT MOSI
+#define _sclk 14  // goes to TFT SCK/CLK
 #define _rst 4    // ESP RST to TFT RESET
 #define _miso 12  // Not connected
-#define _led 9    //(Falsch)
-//       3.3V     // Goes to TFT LED
-//       5v       // Goes to TFT Vcc
-//       Gnd      // Goes to TFT Gnd
+
 #define _left GPIO_NUM_40
 #define _right GPIO_NUM_39
 #define _up GPIO_NUM_41
@@ -23,17 +20,10 @@
 #define _a GPIO_NUM_48
 #define _b GPIO_NUM_47
 
-//Arduino_DataBus *bus = new Arduino_ESP32SPI(_dc);
+//Initializing SPI comunication and Display driver
 Arduino_DataBus *bus = new Arduino_ESP32SPI(_dc, _cs, _sclk, _mosi, _miso);
 Arduino_GFX *tft = new Arduino_ILI9341(bus, _rst, 3 /* rotation */);
 
-void backlighting(bool state) {
-  if (!state) {
-    digitalWrite(_led, LOW);
-  } else {
-    digitalWrite(_led, HIGH);
-  }
-}
 
 #define GAMEBOY_HEIGHT 144
 #define GAMEBOY_WIDTH 160
@@ -141,7 +131,6 @@ void draw_task(void *parameter) {
 
 void sdl_init(void) {
   frame_buffer = new uint8_t[DRAW_WIDTH * DRAW_HEIGHT];
-  // GFX_EXTRA_PRE_INIT();
   tft->begin(SPI_FREQ);
   pinMode(_led, OUTPUT);
   backlighting(true);
