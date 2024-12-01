@@ -157,7 +157,7 @@ void loop() {
   total_sdl += sdl_end - sdl_start - adjust;
   total_delay += delay_end - delay_start - adjust;
   frame_cycles[frames_count] =
-    total_delay + total_timer + total_sdl + total_lcd + total_cpu;
+      total_delay + total_timer + total_sdl + total_lcd + total_cpu;
   assert(frame_cycles[frames_count] < 1000000000);
   bank_switches[frames_count] = mem_get_bank_switches() - start_bank_switches;
 
@@ -170,9 +170,9 @@ void loop() {
     int total_bank_switches = 0;
     for (int i = 0; i < REPORT_INTERVAL; ++i) {
       min_cycles_per_frame =
-        std::min(min_cycles_per_frame, frame_cycles[i] - frame_cycles[i - 1]);
+          std::min(min_cycles_per_frame, frame_cycles[i] - frame_cycles[i - 1]);
       max_cycles_per_frame =
-        std::max(max_cycles_per_frame, frame_cycles[i] - frame_cycles[i - 1]);
+          std::max(max_cycles_per_frame, frame_cycles[i] - frame_cycles[i - 1]);
       total_bank_switches += bank_switches[i];
     }
     avg_cycles_per_frame = frame_cycles[REPORT_INTERVAL - 1];
@@ -194,7 +194,7 @@ void loop() {
     uint32_t host_cycles = total_cpu + total_lcd + total_sdl + total_timer;
     uint32_t emulated_cycles = emulator_cpu_cycle - emulator_cpu_cycle_begin;
     float perf_ratio =
-      ((float)emulator_cpu_freq / cpu_freq) * host_cycles / emulated_cycles;
+        ((float)emulator_cpu_freq / cpu_freq) * host_cycles / emulated_cycles;
     printf("emulator/real hardware ratio: %f\n", perf_ratio);
     printf("emulated cycles: %d\n", emulated_cycles);
     printf("average cycles per frame: %d\n", avg_cycles_per_frame);
@@ -218,7 +218,7 @@ void loop() {
     sdl_count = 0;
     emulator_cpu_cycle_begin = emulator_cpu_cycle;
     total_cpu = total_lcd = total_timer = total_sdl = total_delay =
-      total_outside_loop = 0;
+        total_outside_loop = 0;
     sample_no++;
   }
   prev_loop_exit = ESP.getCycleCount();

@@ -1,16 +1,17 @@
 #include "sdl.h"
 
 #include <Arduino_GFX_Library.h>
-
 #include "SPI.h"
 
-#define _cs 15    // goes to TFT CS
-#define _dc 5     // goes to TFT DC
-#define _mosi 13  // goes to TFT MOSI
-#define _sclk 14  // goes to TFT SCK/CLK
-#define _rst 4    // ESP RST to TFT RESET
+// Pin definitions for the display
+#define _cs 15    // Chip Select for TFT
+#define _dc 5     // Data/Command for TFT
+#define _mosi 13  // Master Out Slave In for TFT
+#define _sclk 14  // Clock signal for TFT
+#define _rst 4    // Reset pin for TFT
 #define _miso 12  // Not connected
 
+// Pin definitions for the input buttons
 #define _left GPIO_NUM_40
 #define _right GPIO_NUM_39
 #define _up GPIO_NUM_41
@@ -20,11 +21,11 @@
 #define _a GPIO_NUM_48
 #define _b GPIO_NUM_47
 
-//Initializing SPI comunication and Display driver
+// SPI and display initialization
 Arduino_DataBus *bus = new Arduino_ESP32SPI(_dc, _cs, _sclk, _mosi, _miso);
 Arduino_GFX *tft = new Arduino_ILI9341(bus, _rst, 3 /* rotation */);
 
-
+// Constants for screen dimensions and scaling
 #define GAMEBOY_HEIGHT 144
 #define GAMEBOY_WIDTH 160
 #define DRAW_HEIGHT 216
@@ -34,129 +35,159 @@ Arduino_GFX *tft = new Arduino_ILI9341(bus, _rst, 3 /* rotation */);
 
 #define SPI_FREQ 40000000
 
-
-
+// Frame buffer for storing graphical data
 static uint8_t *frame_buffer;
 
+// Variables for button states
 static int button_start, button_select, button_a, button_b, button_down,
   button_up, button_left, button_right;
 
+// Flag to indicate when a new frame is ready
 static volatile bool frame_ready = false;
-TaskHandle_t draw_task_handle;
+TaskHandle_t draw_task_handle; // Task handle for the draw task
 
-void sd_card_missing(void){
-tft->setTextSize(3);
-tft->printf("SD card missing");
+/**
+ * @brief Displays a message indicating the SD card is missing.
+ */
+void sd_card_missing(void) {
+  tft->setTextSize(3);
+  tft->printf("SD card missing");
 }
 
-#define DISPLAY_ROWS 6  // Anzahl der Dateien, die gleichzeitig auf dem Display angezeigt werden
+// Number of files to display at once
+#define DISPLAY_ROWS 6
 
+/**
+ * @brief Displays a list of files on the screen and allows selection using buttons.
+ *
+ * @param file_list List of file names to display.
+ * @param file_count Total number of files.
+ * @return The index of the selected file.
+ */
 int display_files_on_lcd(char file_list[MAX_FILES][MAX_FILENAME_LEN], int file_count) {
-    int selected_file_index = 0;       // Der Index der aktuell ausgewählten Datei
-    int previous_selected_index = -1;  // Der vorherige Index, initial auf -1 gesetzt
-    int window_start_index = 0;        // Startindex für das Anzeigefenster
+    int selected_file_index = 0;       // Currently selected file
+    int previous_selected_index = -1; // Tracks the last selection
+    int window_start_index = 0;       // Start index for visible files
 
-    while (1) {  // Endlosschleife, um die Datei auszuwählen
-        button_update();
+    while (1) { // Infinite loop to handle file selection
+        button_update(); // Update button states
 
-        // Logik für die Tasten
-        if (button_up) {  // U für "Up"
+        // Logic for navigation
+        if (button_up) {
+            // Move to the previous file, loop to the last file if at the top
             if (selected_file_index == 0) {
-                selected_file_index = file_count - 1;  // Gehe zum letzten Element, wenn wir ganz oben sind
-                window_start_index = file_count - DISPLAY_ROWS;  // Fenster anpassen
+                selected_file_index = file_count - 1;
+                window_start_index = file_count - DISPLAY_ROWS;
             } else {
-                selected_file_index--;  // Gehe eine Datei nach oben
+                selected_file_index--;
                 if (selected_file_index < window_start_index) {
-                    window_start_index--;  // Fenster verschieben
+                    window_start_index--;
                 }
             }
-        } else if (button_down) {  // D für "Down"
+        } else if (button_down) {
+            // Move to the next file, loop to the first file if at the bottom
             if (selected_file_index == file_count - 1) {
-                selected_file_index = 0;  // Gehe zum ersten Element, wenn wir ganz unten sind
-                window_start_index = 0;  // Fenster zurücksetzen
+                selected_file_index = 0;
+                window_start_index = 0;
             } else {
-                selected_file_index++;  // Gehe eine Datei nach unten
+                selected_file_index++;
                 if (selected_file_index >= window_start_index + DISPLAY_ROWS) {
-                    window_start_index++;  // Fenster verschieben
+                    window_start_index++;
                 }
             }
-        } else if (button_a) {  // S für "Select"
+        } else if (button_a) { // Select the file
             clearScreen();
-            printf("Ausgewählte Datei: %s\n", file_list[selected_file_index]);
-            return selected_file_index;  // Auswahl zurückgeben
+            printf("Selected file: %s\n", file_list[selected_file_index]);
+            return selected_file_index;
         }
 
-        // Nur bei Änderung der Auswahl aktualisieren
+        // Only update the display if the selection changes
         if (selected_file_index != previous_selected_index) {
             clearScreen();
 
-            // Nur die Dateien im aktuellen Fenster anzeigen
+            // Display visible files in the current window
             for (int i = 0; i < DISPLAY_ROWS && (window_start_index + i) < file_count; i++) {
-                tft->setTextSize(2);  // Normale Größe für alle Dateien
+                tft->setTextSize(2);
 
-                int file_index = window_start_index + i;  // Datei im Fenster
+                int file_index = window_start_index + i;
 
                 if (file_index == selected_file_index) {
-                    tft->printf("> File: %s\n", file_list[file_index]);  // Markiere die ausgewählte Datei
+                    tft->printf("> File: %s\n", file_list[file_index]); // Highlight selected file
                 } else {
                     tft->printf("File: %s\n", file_list[file_index]);
                 }
             }
 
-            // Speichere den aktuellen Index als vorherigen Index
             previous_selected_index = selected_file_index;
-            delay(100);  // Leichte Verzögerung für bessere Lesbarkeit
+            delay(100); // Add a delay to avoid rapid button presses
         }
     }
 }
+
+/**
+ * @brief Clears the screen and resets the cursor position.
+ */
 void clearScreen(void) {
-  tft->fillScreen(BLACK);  // Setze Hintergrundfarbe (abhängig von deiner Bibliothek)
-  tft->setCursor(0, 0);    // Setze den Cursor an die Position (0, 0)
+  tft->fillScreen(BLACK);  // Set the background color to black
+  tft->setCursor(0, 0);    // Move the cursor to the top-left corner
 }
 
+/**
+ * @brief Task to draw the frame buffer to the display.
+ *
+ * @param parameter Not used in this implementation.
+ */
 void draw_task(void *parameter) {
+  // Color palette for indexed graphics
   uint16_t color_palette[] = { 0xffff, (16 << 11) + (32 << 5) + 16, (8 << 11) + (16 << 5) + 8, 0x0000 };
 
   int h_offset = (SCREEN_WIDTH - DRAW_WIDTH) / 2;
   int v_offset = (SCREEN_HEIGHT - DRAW_HEIGHT) / 2;
+
   while (true) {
     while (!frame_ready) {
-      delay(1);
+      delay(1); // Wait for the frame to be ready
     }
     frame_ready = false;
+
+    // Draw the indexed bitmap
     tft->drawIndexedBitmap(h_offset, v_offset, frame_buffer, color_palette, DRAW_WIDTH, DRAW_HEIGHT);
   }
 }
 
-
+/**
+ * @brief Initializes the SDL-like environment.
+ */
 void sdl_init(void) {
-  frame_buffer = new uint8_t[DRAW_WIDTH * DRAW_HEIGHT];
-  tft->begin(SPI_FREQ);
+  frame_buffer = new uint8_t[DRAW_WIDTH * DRAW_HEIGHT]; // Allocate memory for the frame buffer
+  tft->begin(SPI_FREQ); // Initialize the TFT with specified SPI frequency
   pinMode(_led, OUTPUT);
   backlighting(true);
   tft->fillScreen(BLACK);
 
+  // Set up the GPIO pins for the buttons
   gpio_num_t gpios[] = { _left, _right, _down, _up, _start, _select, _a, _b };
   for (gpio_num_t pin : gpios) {
     esp_rom_gpio_pad_select_gpio(pin);
     gpio_set_direction(pin, GPIO_MODE_INPUT);
-    // uncomment to use builtin pullup resistors
-    //    gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY);
   }
-  xTaskCreatePinnedToCore(draw_task,         /* Function to implement the task */
-                          "drawTask",        /* Name of the task */
-                          10000,             /* Stack size in words */
-                          NULL,              /* Task input parameter */
-                          0,                 /* Priority of the task */
-                          &draw_task_handle, /* Task handle. */
-                          0);                /* Core where the task should run */
+
+  // Start the draw task
+  xTaskCreatePinnedToCore(draw_task, "drawTask", 10000, NULL, 0, &draw_task_handle, 0);
 }
 
+/**
+ * @brief Updates the SDL state and processes frames.
+ */
 int sdl_update(void) {
-  button_update();
-  sdl_frame();
+  button_update(); // Update button states
+  sdl_frame();     // Process a frame
   return 0;
 }
+
+/**
+ * @brief Updates the state of all buttons.
+ */
 void button_update(void) {
   button_up = gpio_get_level(_up);
   button_left = gpio_get_level(_left);
@@ -170,20 +201,36 @@ void button_update(void) {
   button_b = gpio_get_level(_b);
 }
 
+/**
+ * @brief Gets the state of the buttons as a bitfield.
+ *
+ * @return A bitfield representing the state of the buttons.
+ */
 unsigned int sdl_get_buttons(void) {
-  unsigned int buttons =
-    (button_start * 8) | (button_select * 4) | (button_b * 2) | button_a;
-  return buttons;
+  return (button_start * 8) | (button_select * 4) | (button_b * 2) | button_a;
 }
 
+/**
+ * @brief Gets the state of the directional buttons as a bitfield.
+ *
+ * @return A bitfield representing the state of the directional buttons.
+ */
 unsigned int sdl_get_directions(void) {
   return (button_down * 8) | (button_up * 4) | (button_left * 2) | button_right;
 }
 
+/**
+ * @brief Gets the pointer to the frame buffer.
+ *
+ * @return Pointer to the frame buffer.
+ */
 uint8_t *sdl_get_framebuffer(void) {
   return frame_buffer;
 }
 
+/**
+ * @brief Marks the frame as ready for drawing.
+ */
 void sdl_frame(void) {
   frame_ready = true;
 }
