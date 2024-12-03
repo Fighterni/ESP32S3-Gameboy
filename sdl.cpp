@@ -11,6 +11,7 @@
 #define _rst 4    // Reset pin for TFT
 #define _miso 12  // Not connected
 //#define _led 9  // Backlight
+
 // Pin definitions for the input buttons
 #define _left GPIO_NUM_40
 #define _right GPIO_NUM_39
@@ -161,7 +162,7 @@ void draw_task(void *parameter) {
 void sdl_init(void) {
   frame_buffer = new uint8_t[DRAW_WIDTH * DRAW_HEIGHT]; // Allocate memory for the frame buffer
   tft->begin(SPI_FREQ); // Initialize the TFT with specified SPI frequency
-  pinMode(_led, OUTPUT);
+  //pinMode(_led, OUTPUT); //Uncomment if backlight is used
   backlighting(true);
   tft->fillScreen(BLACK);
 
