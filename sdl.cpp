@@ -10,7 +10,7 @@
 #define _sclk 14  // Clock signal for TFT
 #define _rst 4    // Reset pin for TFT
 #define _miso 12  // Not connected
-
+//#define _led 9  // Backlight
 // Pin definitions for the input buttons
 #define _left GPIO_NUM_40
 #define _right GPIO_NUM_39

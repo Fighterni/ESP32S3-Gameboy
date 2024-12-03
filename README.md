@@ -23,13 +23,13 @@ looking for '2.2 inch SPI 320 240 ILI9341' on eBay or other shopping sites.
 
 | LCD Pin | GPIO |
 | ------- | ---- |
-| MISO    |  19  |
-| MOSI    |  23  |
-| CLK     |  18  |
-| CS      |   5  |
-| DC      |  21  |
-| RST     |  25  |
-| BCKL    |  22  |
+| MISO    |  12  |
+| MOSI    |  13  |
+| CLK     |  14  |
+| CS      |  15c |
+| DC      |   5  |
+| RST     |   4  |
+| BCKL    |   9  |
 
 (BCKL = backlight enable, could be also marked as LED on module board)
 
@@ -54,29 +54,29 @@ VCC(+3.3 V)   GND
 
 | Button | GPIO |
 | ------ | ---- |
-| up     | 17   |
-| down   | 27   |
-| left   | 4    |
-| righ   | 26   |
-| start  | 35   |
-| select | 15   |
-| A      | 33   |
-| B      | 32   |
+| up     | 41   |
+| down   | 42   |
+| left   | 40   |
+| righ   | 39   |
+| start  | 45   |
+| select | 46   |
+| A      | 48   |
+| B      | 47   |
 
 ### SD module
 
 | SD Pin | GPIO |
 | ------ | ---- |
-| MISO   | 12   |
-| MOSI   | 13   |
-| CS     | 16   |
-| CLK    | 14   |
+| MISO   | 16   |
+| MOSI   | 17   |
+| CS     | 21   |
+| CLK    | 18   |
 
 
 # How do I program the chip?
 
 1. Compile and upload esp32-gameboy.ino firmware
-2. Download max 15 GB ROM you want on an SD card. In the .gb format 
+2. Download max. 15 GB-ROM's you want from the internet to an SD card. In the .gb format 
 3. Insert SD card and selelct the game you want to play
 4. To change game restart the Gameboy with a reset button or by turnig it off and on again.
 
