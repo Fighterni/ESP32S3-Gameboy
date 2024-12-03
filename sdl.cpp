@@ -47,6 +47,16 @@ static int button_start, button_select, button_a, button_b, button_down,
 static volatile bool frame_ready = false;
 TaskHandle_t draw_task_handle; // Task handle for the draw task
 
+//Uncomment if Backlight is used
+/*void backlighting(bool state) {
+  if (!state) {
+    digitalWrite(_led, LOW);
+  } else {
+    digitalWrite(_led, HIGH);
+  }
+}
+*/
+
 /**
  * @brief Displays a message indicating the SD card is missing.
  */
@@ -163,7 +173,7 @@ void sdl_init(void) {
   frame_buffer = new uint8_t[DRAW_WIDTH * DRAW_HEIGHT]; // Allocate memory for the frame buffer
   tft->begin(SPI_FREQ); // Initialize the TFT with specified SPI frequency
   //pinMode(_led, OUTPUT); //Uncomment if backlight is used
-  backlighting(true);
+  //backlighting(true); //Uncomment if backlight is used
   tft->fillScreen(BLACK);
 
   // Set up the GPIO pins for the buttons
